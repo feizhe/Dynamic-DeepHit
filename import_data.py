@@ -91,14 +91,14 @@ def f_construct_dataset(df, feat_list):
 
     grouped  = df.groupby(['id'])
     id_list  = pd.unique(df['id'])
-    # max_meas = np.max(grouped.count())[0]
-    max_meas = grouped.count().iloc[:, 0].max()
+    max_meas = np.max(grouped.count())  ## [0]
+    # max_meas = grouped.count().iloc[:, 0].max()
 
     data     = np.zeros([len(id_list), max_meas, len(feat_list)+1])
     pat_info = np.zeros([len(id_list), 5])
 
     for i, tmp_id in enumerate(id_list):
-        tmp = grouped.get_group(tmp_id).reset_index(drop=True)
+        tmp = grouped.get_group((tmp_id,)).reset_index(drop=True)
 
         pat_info[i,4] = tmp.shape[0]                                   #number of measurement
         pat_info[i,3] = np.max(tmp['times'])     #last measurement time
