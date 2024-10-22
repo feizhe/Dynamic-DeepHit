@@ -11,7 +11,7 @@ def create_rnn_cell(num_units, num_layers, keep_prob, RNN_type, activation_fn):
         GOAL         : create multi-cell (including a single cell) to construct multi-layer RNN
         num_units    : number of units in each layer
         num_layers   : number of layers in MulticellRNN
-        keep_prob    : keep probabilty [0, 1]  (if None, dropout is not employed)
+        keep_prob    : keep probability [0, 1]  (if None, dropout is not employed)
         RNN_type     : either 'LSTM' or 'GRU'
     '''
     if activation_fn == 'None':
@@ -20,16 +20,24 @@ def create_rnn_cell(num_units, num_layers, keep_prob, RNN_type, activation_fn):
     cells = []
     for _ in range(num_layers):
         if RNN_type == 'GRU':
-            cell = tf.contrib.rnn.GRUCell(num_units, activation=activation_fn)
+            cell = tf.keras.layers.GRUCell(num_units, activation=activation_fn)
         elif RNN_type == 'LSTM':
-            cell = tf.contrib.rnn.LSTMCell(num_units, activation=activation_fn, state_is_tuple=True)
-            # cell = tf.contrib.rnn.LSTMCell(num_units, activation=activation_fn)
-        if not keep_prob is None:
-            cell = tf.contrib.rnn.DropoutWrapper(cell, input_keep_prob=keep_prob, output_keep_prob=keep_prob) # state_keep_prob=keep_prob
+            cell = tf.keras.layers.LSTMCell(num_units, activation=activation_fn)
+        
+        # Append the cell directly to the list
         cells.append(cell)
-    cell = tf.contrib.rnn.MultiRNNCell(cells)
-    
-    return cell
+
+    # Use tf.keras.layers.RNN to wrap the list of cells into a multi-layer RNN
+    # Apply dropout here with `dropout` (for input dropout) and `recurrent_dropout` (for dropout between time steps)
+    multi_rnn_cell = tf.keras.layers.RNN(
+        cells,
+        return_sequences=True, 
+        return_state=True,
+        dropout=1 - keep_prob if keep_prob is not None else 0.0,  # Input dropout
+        recurrent_dropout=1 - keep_prob if keep_prob is not None else 0.0  # Recurrent dropout
+    )
+
+    return multi_rnn_cell
 
 
 ### EXTRACT STATE OUTPUT OF MULTICELL-RNNS
@@ -86,7 +94,7 @@ def create_FCNet(inputs, num_layers, h_dim, h_fn, o_dim, o_fn, w_init, w_reg=Non
 
     # default initialization functions (weight: Xavier, bias: None)
     if w_init is None:
-        w_init = tf.contrib.layers.xavier_initializer() # Xavier initialization
+        w_init = tf.keras.initializers.GlorotUniform() # Xavier initialization
 
     for layer in range(num_layers):
         if num_layers == 1:
